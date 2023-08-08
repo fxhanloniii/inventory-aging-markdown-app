@@ -1,3 +1,27 @@
-# This file stores configurations for your Shopify app.
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
+name = "inventory-aging-markdown-app"
+client_id = "810353aad6e2d62f0efaa3451acb3f14"
+application_url = "https://languages-ross-mo-ka.trycloudflare.com"
+embedded = true
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
 scopes = "write_products"
+
+[auth]
+redirect_urls = [
+  "https://languages-ross-mo-ka.trycloudflare.com/auth/callback",
+  "https://languages-ross-mo-ka.trycloudflare.com/auth/shopify/callback",
+  "https://languages-ross-mo-ka.trycloudflare.com/api/auth/callback"
+]
+
+[webhooks]
+api_version = "2023-07"
+
+[pos]
+embedded = false
+
+[build]
+automatically_update_urls_on_dev = true
+dev_store_url = "fxhiii.myshopify.com"
