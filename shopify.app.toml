@@ -2,18 +2,18 @@
 
 name = "inventory-aging-markdown-app"
 client_id = "810353aad6e2d62f0efaa3451acb3f14"
-application_url = "https://languages-ross-mo-ka.trycloudflare.com"
+application_url = "https://zshops-oral-publishing-techno.trycloudflare.com"
 embedded = true
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = "write_products"
+scopes = "read_products,read_orders,read_all_orders,read_inventory,read_reports,read_customers,read_fulfillments"
 
 [auth]
 redirect_urls = [
-  "https://languages-ross-mo-ka.trycloudflare.com/auth/callback",
-  "https://languages-ross-mo-ka.trycloudflare.com/auth/shopify/callback",
-  "https://languages-ross-mo-ka.trycloudflare.com/api/auth/callback"
+  "https://zshops-oral-publishing-techno.trycloudflare.com/auth/callback",
+  "https://zshops-oral-publishing-techno.trycloudflare.com/auth/shopify/callback",
+  "https://zshops-oral-publishing-techno.trycloudflare.com/api/auth/callback"
 ]
 
 [webhooks]
