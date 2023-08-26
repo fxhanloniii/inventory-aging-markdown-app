@@ -1,3 +1,5 @@
+
+
 // Import necessary dependencies
 import { useEffect, useState } from "react";
 import { json } from "@remix-run/node";
@@ -46,7 +48,7 @@ export const loader = async ({ request }) => {
   const thirtyDaysAgo = new Date(
     Date.now() - 30 * 24 * 60 * 60 * 1000
   ).toISOString().substring(0, 10);
-  const url = 'https://fxhiii.myshopify.com/admin/api/2020-04/graphql.json';
+  
   // Construct the GraphQL query with variables
   const bulkOperationMutation = `
   mutation {
@@ -57,13 +59,16 @@ export const loader = async ({ request }) => {
       edges {
         node {
           id
-          title
           variants(first: 10) {  
             edges {
               node {
+                title
                 sku
                 inventoryQuantity
                 updatedAt
+                product {
+                  title
+                }
               }
             }
           }
@@ -131,9 +136,9 @@ const startOperationResponse = await admin.graphql(bulkOperationMutation);
   const parsedData = jsonDataLines
     .filter(line => line.trim() !== '') // Remove empty lines
     .map(line => JSON.parse(line)); // Parse each JSON object in the line
-  // Now you can parse and process the jsonData as needed
+  
     console.log("parsedData", parsedData);  
-  return json({ operationStatus: "Completed" }); // Return the data to the loader
+  return json({ operationStatus: "Completed", data: parsedData }); // Return the data to the loader
  
   
 }
@@ -146,18 +151,20 @@ const startOperationResponse = await admin.graphql(bulkOperationMutation);
 
 // Main component to render the page
 export default function Index() {
-  const { operationStatus } = useLoaderData(); // Get the product and order information from loader data
-  console.log("operationStatus", operationStatus);
+  const { data } = useLoaderData(); // Get the product and order information from loader data
+  console.log("Data:", data);
   
 
 
  
 
   const [dropdownValue1, setDropdownValue1] = useState("30");
-  const [dropdownValue2, setDropdownValue2] = useState("60");
-  const [dropdownValue3, setDropdownValue3] = useState("90");
+  
 
   
+if (!data) {
+  return <p>Loading Data...</p>
+}
 
   return (
     <Page>
@@ -182,9 +189,9 @@ export default function Index() {
             <Select
               label="Select an option"
               options={[
-                { label: "30 days", value: "30" },
-                { label: "60 days", value: "60" },
-                { label: "90 days", value: "90" },
+                { label: "10%", value: "30" },
+                { label: "20%", value: "60" },
+                { label: "30%", value: "90" },
                 { label: "n.a", value: "n.a" },
               ]}
               value={dropdownValue1}
@@ -202,55 +209,22 @@ export default function Index() {
                   List of Products
                 </Text>
                 <List spacing="extraTight">
-                
-                </List>
-              </VerticalStack>
-            </Card>
-          </Layout.Section>
-        </Layout>
-      </VerticalStack>
-      <VerticalStack gap="5">
-        <Layout>
-          <Layout.Section>
-            <Card>
-              <VerticalStack gap="5">
-                <Text as="h2" variant="headingMd">
-                  List of Orders
-                </Text>
-                <List spacing="extraTight">
-                
-                </List>
-              </VerticalStack>
-            </Card>
-          </Layout.Section>
-        </Layout>
-      </VerticalStack>
-      <VerticalStack gap="5">
-        <Layout>
-          <Layout.Section>
-            <Card>
-              <VerticalStack gap="5">
-                <Text as="h2" variant="headingMd">
-                  List of Products
-                </Text>
-                <List spacing="extraTight">
-                  {/* {jsonData.map(product => (
-                    <List.Item key={product.id}>
-                      <Card sectioned>
-                        <Text>{product.title}</Text>
-                        <Text>SKU: {product.sku}</Text>
-                        <Text>Inventory Quantity: {product.inventoryQuantity}</Text>
-                        <Text>Updated At: {product.updatedAt}</Text>
+                  {data.map(product => (
+                    product.updatedAt && (
+                      <Card key={product.id}>
+                          <Text as="p">{product.title}</Text>
+                          <Text as="p">SKU: {product.sku}</Text>
+                          <Text as="p">Inventory Quantity: {product.inventoryQuantity}</Text>
+                          <Text as="p">Updated At: {product.updatedAt}</Text>
                       </Card>
-                    </List.Item>
-                  ))} */}
+                    )
+                  ))}
                 </List>
               </VerticalStack>
             </Card>
           </Layout.Section>
         </Layout>
       </VerticalStack>
-
     </Page>
   );
 }
