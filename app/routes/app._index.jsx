@@ -5,17 +5,6 @@ import { useLoaderData } from "@remix-run/react";
 import { Page, Layout, Text, VerticalStack, Card, List, Select } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
 
-// Define today's date and the date 30, 60 and 90 days ago
-const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-const sixtyDaysAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
-const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
-
-// Define the aging buckets to store the products
-const agingBuckets = {
-  30: [],
-  60: [],
-  90: [],
-};
 
 // Helper function to poll the bulk operation status
 async function pollOperationStatus(admin, operationId) {
@@ -50,13 +39,7 @@ async function pollOperationStatus(admin, operationId) {
 export const loader = async ({ request }) => {
   const { admin } = await authenticate.admin(request);
   
-   // I need a bulk operation query, a webhook to check when operation is done and to display the information on the page
 
-     // Define today's date and the date 30 days ago in the required format
-  const today = new Date().toISOString().substring(0, 10);
-  const thirtyDaysAgo = new Date(
-    Date.now() - 30 * 24 * 60 * 60 * 1000
-  ).toISOString().substring(0, 10);
   
   // Construct the GraphQL query with variables
   const bulkOperationMutation = `
