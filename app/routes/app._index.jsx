@@ -1,5 +1,3 @@
-
-
 // Import necessary dependencies
 import { useEffect, useState } from "react";
 import { json } from "@remix-run/node";
@@ -7,6 +5,17 @@ import { useLoaderData } from "@remix-run/react";
 import { Page, Layout, Text, VerticalStack, Card, List, Select } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
 
+// Define today's date and the date 30, 60 and 90 days ago
+const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+const sixtyDaysAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
+const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+
+// Define the aging buckets to store the products
+const agingBuckets = {
+  30: [],
+  60: [],
+  90: [],
+};
 
 // Helper function to poll the bulk operation status
 async function pollOperationStatus(admin, operationId) {
@@ -53,29 +62,42 @@ export const loader = async ({ request }) => {
   const bulkOperationMutation = `
   mutation {
     bulkOperationRunQuery(
-     query: """
-      {
-    products {
-      edges {
-        node {
-          id
-          variants(first: 10) {  
+      query: """
+        {
+          products {
             edges {
               node {
+                id
                 title
-                sku
-                inventoryQuantity
-                updatedAt
-                product {
-                  title
+                variants(first: 100) {  
+                  edges {
+                    node {
+                      sku
+                      inventoryQuantity
+                      updatedAt
+                    }
+                  }
                 }
               }
             }
           }
+  
+          orders(first: 10) {
+            edges {
+              node {
+                id
+                lineItems(first: 10) {
+                  edges {
+                    node {
+                      sku
+                    }
+                  }
+                }
+                createdAt
+              }
+            }
+          }
         }
-      }
-    }
-  }
       """
     ) {
       bulkOperation {
