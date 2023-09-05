@@ -2,7 +2,7 @@
 
 name = "inventory-aging-markdown-app"
 client_id = "810353aad6e2d62f0efaa3451acb3f14"
-application_url = "https://island-scientists-keyboard-photography.trycloudflare.com"
+application_url = "https://auto-creek-gig-dominant.trycloudflare.com"
 embedded = true
 
 [access_scopes]
@@ -11,9 +11,9 @@ scopes = "read_products,read_orders,read_all_orders,read_inventory,read_reports,
 
 [auth]
 redirect_urls = [
-  "https://island-scientists-keyboard-photography.trycloudflare.com/auth/callback",
-  "https://island-scientists-keyboard-photography.trycloudflare.com/auth/shopify/callback",
-  "https://island-scientists-keyboard-photography.trycloudflare.com/api/auth/callback"
+  "https://auto-creek-gig-dominant.trycloudflare.com/auth/callback",
+  "https://auto-creek-gig-dominant.trycloudflare.com/auth/shopify/callback",
+  "https://auto-creek-gig-dominant.trycloudflare.com/api/auth/callback"
 ]
 
 [webhooks]

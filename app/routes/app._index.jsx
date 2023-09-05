@@ -65,7 +65,7 @@ export const loader = async ({ request }) => {
             }
           }
   
-          orders(first: 10) {
+          orders {
             edges {
               node {
                 id
@@ -73,6 +73,9 @@ export const loader = async ({ request }) => {
                   edges {
                     node {
                       sku
+                      product {
+                        id
+                      }
                     }
                   }
                 }
@@ -145,7 +148,7 @@ const startOperationResponse = await admin.graphql(bulkOperationMutation);
     console.log("parsedData", parsedData);  
   return json({ operationStatus: "Completed", data: parsedData }); // Return the data to the loader
  
-  
+
 }
 
 
@@ -157,13 +160,196 @@ const startOperationResponse = await admin.graphql(bulkOperationMutation);
 // Main component to render the page
 export default function Index() {
   const { data } = useLoaderData(); // Get the product and order information from loader data
-  console.log("Data:", data);
   
+  // Define today's date and the date 30, 60 and 90 days ago
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const sixtyDaysAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
+  const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
 
+  const [dropdownValue1, setDropdownValue1] = useState("30");
+  
+  // Define the aging buckets to store the products
+  let agingBuckets = {
+    30: [],
+    60: [],
+    90: [],
+  };
+
+  const orders = [];
+  const products = [];
+
+  data.forEach(item => {
+    if (item.id && item.id.startsWith("gid://shopify/Order/")) {
+      orders.push(item);
+    } else {
+      products.push(item);
+    }
+  });
+
+  // Filter orders from the last 30 days
+  const recentOrders = orders.filter(order => {
+  const orderDate = new Date(order.createdAt);
+  return orderDate > thirtyDaysAgo;
+  });
+
+  // Extract SKUs of products that have been ordered in the last 30 days
+  const recentlyOrderedProductSkus = [];
+  recentOrders.forEach(order => {
+    if (lineItemsByOrder[order.id]) {
+      lineItemsByOrder[order.id].forEach(item => {
+        if (item.sku) {
+          recentlyOrderedProductSkus.push(item.sku);
+        }
+      });
+    }
+  });
+  console.log("recentOrders", recentlyOrderedProductSkus)
+
+  // Filter products that have NOT been ordered in the last 30 days
+  const productsNotOrderedRecently = products.filter(product => {
+    return !recentlyOrderedProductSkus.includes(product.sku);
+  });
+
+ 
+  console.log("Orders:", orders);
+  console.log("Products:", products);
+  console.log("Not Ordered Recently:", productsNotOrderedRecently);
+
+  function extractOrderLineItems(data) {
+    // Filter out the order ids
+    const orderIds = data.filter(item => item.id && item.id.startsWith('gid://shopify/Order/')).map(item => item.id);
+    
+    // For each order id, extract its line items
+    const orderLineItems = {};
+    orderIds.forEach(orderId => {
+      orderLineItems[orderId] = data.filter(item => item.__parentId === orderId);
+    });
+  
+    return orderLineItems;
+  }
+  const lineItemsByOrder = extractOrderLineItems(data);
+  console.log("line items:", lineItemsByOrder);
+
+
+  function extractOrderData(data, lineItemsByOrder) {
+    // Extract orders with their created dates
+    const orders = data.filter(item => item.id && item.id.startsWith('gid://shopify/Order/'))
+                       .map(order => ({ id: order.id, createdAt: order.createdAt }));
+    console.log("orders:", orders);
+    const orderLineItems = {};
+
+    orders.forEach(order => {
+        orderLineItems[order.id] = {
+            createdAt: order.createdAt,
+            lineItems: lineItemsByOrder[order.id]
+                          .filter(item => item.__parentId === order.id)
+                          .map(item => {
+                            if (item && item.product && item.product.id) {
+                              return item.product.id;
+                            } else {
+                              return null; 
+                            }
+                          })
+                          .filter(id => id), // Remove null values
+        };
+    });
+
+    return orderLineItems;
+}
+console.log("orderLineItems:", extractOrderData(data, lineItemsByOrder));
+
+function getProductsNotSoldInPeriod(data) {
+    const today = new Date();
+    const thirtyDaysAgo = new Date(today);
+    thirtyDaysAgo.setDate(today.getDate() - 30);
+    
+    const sixtyDaysAgo = new Date(today);
+    sixtyDaysAgo.setDate(today.getDate() - 60);
+    
+    const ninetyDaysAgo = new Date(today);
+    ninetyDaysAgo.setDate(today.getDate() - 90);
+
+    const productsByAging = {
+        last30Days: new Set(),
+        last60Days: new Set(),
+        last90Days: new Set()
+    };
+
+    const orderData = extractOrderData(data, lineItemsByOrder);
+
+    for (let orderId in orderData) {
+        const orderDate = new Date(orderData[orderId].createdAt);
+        orderData[orderId].lineItems.forEach(productId => {
+          if (orderDate <= thirtyDaysAgo && orderDate > sixtyDaysAgo) {
+            productsByAging.last30Days.add(productId);  // sold between 30-60 days ago
+          }
+          if (orderDate <= sixtyDaysAgo && orderDate > ninetyDaysAgo) {
+              productsByAging.last60Days.add(productId);  // sold between 60-90 days ago
+          }
+          if (orderDate <= ninetyDaysAgo) {
+              productsByAging.last90Days.add(productId);  // not sold for more than 90 days
+          }
+        });
+    }
+
+      return {
+        soldBetween30And60Days: [...productsByAging.last30Days],
+        soldBetween60And90Days: [...productsByAging.last60Days],
+        notSoldForMoreThan90Days: [...productsByAging.last90Days]
+      };
+  }
+
+const result = getProductsNotSoldInPeriod(data);
+
+agingBuckets[30] = result.soldBetween30And60Days;
+agingBuckets[60] = result.soldBetween60And90Days;
+agingBuckets[90] = result.notSoldForMoreThan90Days;
+console.log(result);
+console.log(agingBuckets[30]);
+console.log(agingBuckets[60]);
+console.log(agingBuckets[90]);
+
+  // New Code until SKUs come into play
+
+  // After defining your constants `thirtyDaysAgo`, `sixtyDaysAgo`, and `ninetyDaysAgo`, create the following functions:
+
+// function getOrderedProductIdsWithinDate(orders, date) {
+//   return orders.reduce((acc, order) => {
+//     const orderDate = new Date(order.createdAt);
+//     if (orderDate > date) {
+//       order.lineItems.edges.forEach(edge => {
+//         acc.add(edge.node.product.id);
+//       });
+//     }
+//     return acc;
+//   }, new Set());  // We use a set to prevent duplicates
+// }
+
+// const orderedProductIdsInLast30Days = getOrderedProductIdsWithinDate(orders, thirtyDaysAgo);
+// const orderedProductIdsInLast60Days = getOrderedProductIdsWithinDate(orders, sixtyDaysAgo);
+// const orderedProductIdsInLast90Days = getOrderedProductIdsWithinDate(orders, ninetyDaysAgo);
+
+// Now, for each aging bucket, filter the products:
+
+// products.forEach(product => {
+//   if (!orderedProductIdsInLast30Days.has(product.id)) {
+//     agingBuckets[30].push(product);
+//   } else if (!orderedProductIdsInLast60Days.has(product.id)) {
+//     agingBuckets[60].push(product);
+//   } else if (!orderedProductIdsInLast90Days.has(product.id)) {
+//     agingBuckets[90].push(product);
+//   }
+// });
+
+// Your products are now sorted in the `agingBuckets` based on the last time they were ordered.
+
+// When rendering the products, use the value from the dropdown to determine which bucket to use:
+
+const bucketToDisplay = agingBuckets[dropdownValue1];  // assuming dropdownValue1 contains values "30", "60", or "90"
 
  
 
-  const [dropdownValue1, setDropdownValue1] = useState("30");
+  
   
 
   
@@ -214,16 +400,16 @@ if (!data) {
                   List of Products
                 </Text>
                 <List spacing="extraTight">
-                  {data.map(product => (
-                    product.updatedAt && (
-                      <Card key={product.id}>
-                          <Text as="p">{product.title}</Text>
-                          <Text as="p">SKU: {product.sku}</Text>
-                          <Text as="p">Inventory Quantity: {product.inventoryQuantity}</Text>
-                          <Text as="p">Updated At: {product.updatedAt}</Text>
-                      </Card>
-                    )
-                  ))}
+                {products.map(product => (
+                  product.updatedAt && (
+                    <Card key={product.id}>
+                      <Text as="p">{product.title}</Text>
+                      <Text as="p">SKU: {product.sku}</Text>
+                      <Text as="p">Inventory Quantity: {product.inventoryQuantity}</Text>
+                      <Text as="p">Updated At: {product.updatedAt}</Text>
+                    </Card>
+                  )
+                ))}
                 </List>
               </VerticalStack>
             </Card>
